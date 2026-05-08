@@ -6,8 +6,6 @@
 
 `kf1.py` は、ランドマーク付きの2次元環境でロボットを動かしながら、`Mcl` を使って自己位置推定を行うシミュレーションです。
 
-ファイル名は `kf1.py` ですが、この時点の実装で使っているのは Kalman Filter ではなく Monte Carlo Localization (MCL) です。
-
 ## What The Code Does
 
 `trial()` では次の処理を順に行います。
@@ -92,15 +90,6 @@ world.draw()
 - `EstimationAgent(...)`: ロボットを前進・回転させつつ推定器を更新する
 - `Robot(...)`: センサと推定器付きのロボットを生成する
 - `world.draw()`: アニメーションを開始する
-
-## Why The Filename Is Confusing
-
-`kf1.py` という名前からは Kalman Filter を連想しますが、現在の中身は MCL です。
-
-もしこのディレクトリを「Kalman Filter の章」として使うなら、今後は以下のどちらかを整理した方が分かりやすくなります。
-
-- ファイル名を MCL に合わせる
-- 中身を Kalman Filter 系の実装に置き換える
 
 ## Related Files
 
