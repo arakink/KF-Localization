@@ -16,10 +16,10 @@ class KalmanFilter: ###kalmanfilter1
         self.belief = multivariate_normal(mean=np.array([0.0, 0.0, math.pi/4]), cov=np.diag([0.1, 0.2, 0.01]))
         self.pose = self.belief.mean
         
-    def motion_update(self, nu, omega, time): #後から実装
+    def motion_update(self, nu, omega, time): # 後から実装
         pass
     
-    def observation_update(self, observation):  #後から実装
+    def observation_update(self, observation):  # 後から実装
         pass
         
     def draw(self, ax, elems):
@@ -34,7 +34,7 @@ class KalmanFilter: ###kalmanfilter1
         ys = [y + math.sin(c-sigma3), y, y + math.sin(c+sigma3)]
         elems += ax.plot(xs, ys, color="blue", alpha=0.5)
         
-def trial(): ###kf2exec（ロボットを作るの部分）
+def trial(): ###kf2exec（ロボットを作る部分）
     time_interval = 0.1
     world = World(30, time_interval, debug=False) 
 
