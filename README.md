@@ -19,3 +19,4 @@ python section_kalman_filter/kf1.py
 
 - [`kf1.py` explanation](docs/kf1.md)
 - [`kf2.py` explanation](docs/kf2.md)
+- [`kf3.py` explanation](docs/kf3.md)
