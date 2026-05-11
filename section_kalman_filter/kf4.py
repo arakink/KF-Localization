@@ -27,7 +27,7 @@ def matF(nu, omega, time, theta):
     F[1, 2] = nu / omega * (math.sin(theta + omega * time) - math.sin(theta))
     return F
 
-def matH(pose, landmark_pos): ###kf4funcs
+def matH(pose, landmark_pos):
     mx, my = landmark_pos
     mux, muy, mut = pose
     q = (mux - mx)**2 + (muy - my)**2
@@ -35,18 +35,18 @@ def matH(pose, landmark_pos): ###kf4funcs
 
 def matQ(distance_dev, direction_dev):
     return np.diag(np.array([distance_dev**2, direction_dev**2]))
-class KalmanFilter: ###kf4init
+class KalmanFilter:
     def __init__(self, envmap, init_pose, motion_noise_stds={"nn":0.19, "no":0.001, "on":0.13, "oo":0.2}, \
-                 distance_dev_rate=0.14, direction_dev=0.05): #変数追加
+                 distance_dev_rate=0.14, direction_dev=0.05): # 観測ノイズも受け取る
         self.belief = multivariate_normal(mean=init_pose, cov=np.diag([1e-10, 1e-10, 1e-10])) 
         self.pose = self.belief.mean
         self.motion_noise_stds = motion_noise_stds
-        self.map = envmap  #以下3行追加（Mclと同じ）
+        self.map = envmap  # 観測更新でランドマーク位置を参照する
         self.distance_dev_rate = distance_dev_rate
         self.direction_dev = direction_dev
         
-    def observation_update(self, observation):  #追加
-        mean, cov = self.belief.mean, self.belief.cov #旧バージョンではこの行なし
+    def observation_update(self, observation):
+        mean, cov = self.belief.mean, self.belief.cov # 観測ごとに平均と共分散を更新する
         for d in observation:
             z = d[0]
             obs_id = d[1]
@@ -55,14 +55,14 @@ class KalmanFilter: ###kf4init
             estimated_z = IdealCamera.observation_function(mean, self.map.landmarks[obs_id].pos)
             Q = matQ(estimated_z[0]*self.distance_dev_rate, self.direction_dev)
             K = cov.dot(H.T).dot(np.linalg.inv(Q + H.dot(cov).dot(H.T)))
-            mean += K.dot(z - estimated_z)          #旧バージョンではself.belief.meanを直接更新
-            cov = (np.eye(3) - K.dot(H)).dot(cov)  #旧バージョンではself.belief.covを直接更新 
+            mean += K.dot(z - estimated_z)          # 観測とのずれで平均を補正
+            cov = (np.eye(3) - K.dot(H)).dot(cov)  # 観測した分だけ不確かさを減らす
             
-        self.belief = multivariate_normal(mean=mean, cov=cov) #旧バージョンではこの行なし
+        self.belief = multivariate_normal(mean=mean, cov=cov) # 更新後の信念を保存
         self.pose = self.belief.mean
         
-    def motion_update(self, nu, omega, time): #追加
-        if abs(omega) < 1e-5: omega = 1e-5 #値が0になるとゼロ割りになって計算ができないのでわずかに値を持たせる
+    def motion_update(self, nu, omega, time):
+        if abs(omega) < 1e-5: omega = 1e-5 # 直進時のゼロ割りを避ける
 
         M = matM(nu, omega, time, self.motion_noise_stds)
         A = matA(nu, omega, time, self.belief.mean[2])
@@ -70,14 +70,14 @@ class KalmanFilter: ###kf4init
         cov = F.dot(self.belief.cov).dot(F.T) + A.dot(M).dot(A.T)
         mean = IdealRobot.state_transition(nu, omega, time, self.belief.mean)
         self.belief = multivariate_normal(mean=mean, cov=cov)
-        self.pose = self.belief.mean #他のクラスで使う
+        self.pose = self.belief.mean # 描画や他クラス参照用
         
     def draw(self, ax, elems):
-        ###xy平面上の誤差の3シグマ範囲###
+        # x-y 平面での 3 シグマ範囲
         e = sigma_ellipse(self.belief.mean[0:2], self.belief.cov[0:2, 0:2], 3)
         elems.append(ax.add_patch(e))
 
-        ###θ方向の誤差の3シグマ範囲###
+        # 向き theta の 3 シグマ範囲
         x, y, c = self.belief.mean
         sigma3 = math.sqrt(self.belief.cov[2, 2])*3
         xs = [x + math.cos(c-sigma3), x, x + math.cos(c+sigma3)]
@@ -87,14 +87,14 @@ if __name__ == '__main__':
     time_interval = 0.1
     world = World(30, time_interval, debug=False) 
 
-    ### 地図を生成して3つランドマークを追加 ###
+    # 3つのランドマークを持つ地図を作る
     m = Map()                                  
     m.append_landmark(Landmark(-4,2))
     m.append_landmark(Landmark(2,-3))
     m.append_landmark(Landmark(3,3))
     world.append(m)          
 
-    ### ロボットを作る ###
+    # 異なる運動をする 3 台のロボットを作る
     initial_pose = np.array([0, 0, 0]).T
     kf = KalmanFilter(m, initial_pose)
     circling = EstimationAgent(time_interval, 0.2, 10.0/180*math.pi, kf)

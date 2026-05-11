@@ -6,7 +6,7 @@ from mcl import *
 from scipy.stats import multivariate_normal
 from matplotlib.patches import Ellipse
 
-def sigma_ellipse(p, cov, n):  ###kf3calculation
+def sigma_ellipse(p, cov, n):
     eig_vals, eig_vec = np.linalg.eig(cov)
     ang = math.atan2(eig_vec[:,0][1], eig_vec[:,0][0])/math.pi*180
     return Ellipse(p, width=2*n*math.sqrt(eig_vals[0]),height=2*n*math.sqrt(eig_vals[1]), angle=ang, fill=False, color="blue", alpha=0.5)
@@ -28,32 +28,32 @@ def matF(nu, omega, time, theta):
     F[1, 2] = nu / omega * (math.sin(theta + omega * time) - math.sin(theta))
     return F
 
-class KalmanFilter:   ###kfmotionupdate
+class KalmanFilter:
     def __init__(self, envmap, init_pose, motion_noise_stds={"nn":0.19, "no":0.001, "on":0.13, "oo":0.2}):
         self.belief = multivariate_normal(mean=np.array([0.0, 0.0, 0.0]), cov=np.diag([1e-10, 1e-10, 1e-10]))
-        self.motion_noise_stds = motion_noise_stds #追加
+        self.motion_noise_stds = motion_noise_stds # 運動ノイズの係数
         self.pose = self.belief.mean
 
     def observation_update(self, observation): 
         pass
     
-    def motion_update(self, nu, omega, time): #追加
-        if abs(omega) < 1e-5: omega = 1e-5 #値が0になるとゼロ割りになって計算ができないのでわずかに値を持たせる
+    def motion_update(self, nu, omega, time):
+        if abs(omega) < 1e-5: omega = 1e-5 # 直進時のゼロ割りを避ける
 
         M = matM(nu, omega, time, self.motion_noise_stds)
         A = matA(nu, omega, time, self.belief.mean[2])
         F = matF(nu, omega, time, self.belief.mean[2])
-        cov = F.dot(self.belief.cov).dot(F.T) + A.dot(M).dot(A.T)             #旧バージョンではself.belef.covに直接代入
-        mean = IdealRobot.state_transition(nu, omega, time, self.belief.mean) #旧バージョンではself.belef.meanに直接代入
-        self.belief = multivariate_normal(mean=mean, cov=cov)                 #旧バージョンではこの行なし
-        self.pose = self.belief.mean #他のクラスで使う
+        cov = F.dot(self.belief.cov).dot(F.T) + A.dot(M).dot(A.T)             # 運動後の共分散
+        mean = IdealRobot.state_transition(nu, omega, time, self.belief.mean) # 運動後の平均姿勢
+        self.belief = multivariate_normal(mean=mean, cov=cov)                 # 信念を更新
+        self.pose = self.belief.mean # 描画や他クラス参照用
 
     def draw(self, ax, elems):
-        ###xy平面上の誤差のnシグマ範囲###
+        # x-y 平面での 3 シグマ範囲
         e = sigma_ellipse(self.belief.mean[0:2], self.belief.cov[0:2, 0:2], 3)
         elems.append(ax.add_patch(e))
 
-        ###θ方向の誤差の3シグマ範囲###
+        # 向き theta の 3 シグマ範囲
         x, y, c = self.belief.mean
         sigma3 = math.sqrt(self.belief.cov[2, 2])*3
         xs = [x + math.cos(c-sigma3), x, x + math.cos(c+sigma3)]
@@ -64,14 +64,14 @@ if __name__ == '__main__':
     time_interval = 0.1
     world = World(30, time_interval, debug=False) 
 
-    ### 地図を生成して3つランドマークを追加 ###
+    # 3つのランドマークを持つ地図を作る
     m = Map()                                  
     m.append_landmark(Landmark(-4,2))
     m.append_landmark(Landmark(2,-3))
     m.append_landmark(Landmark(3,3))
     world.append(m)          
 
-    ### ロボットを作る ###
+    # 異なる運動をする 3 台のロボットを作る
     initial_pose = np.array([0, 0, 0]).T
     kf = KalmanFilter(m, initial_pose)
     

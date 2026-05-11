@@ -8,14 +8,14 @@ def trial():
     time_interval = 0.1
     world = World(30, time_interval, debug=False) 
 
-    ### 地図を生成して3つランドマークを追加 ###
+    # 3つのランドマークを持つ地図を作る
     m = Map()
     for ln in [(-4,2), (2,-3), (3,3)]: m.append_landmark(Landmark(*ln))
     world.append(m)          
 
-    ### ロボットを作る ###
+    # MCL を使うロボットを作る
     initial_pose = np.array([0, 0, 0]).T
-    estimator = Mcl(m, initial_pose, 100)          #MCLを動かす
+    estimator = Mcl(m, initial_pose, 100)          # 自己位置推定器
     a = EstimationAgent(time_interval, 0.2, 10.0/180*math.pi, estimator)
     r = Robot(initial_pose, sensor=Camera(m), agent=a, color="red")
     world.append(r)
